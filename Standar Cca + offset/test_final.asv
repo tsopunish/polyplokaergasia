@@ -1,0 +1,82 @@
+clear;
+clc;
+
+room = 2*ones(9,15);  % orizoume tis theseis tou xwrou mas (9 seires me 15 kathismata i kathemia) (2 gia normal state)
+printroom(room);
+pause(2); 
+
+K = ones(2,3);  % voithitkos pinakas gia ton ypologismo twn kontinwn
+
+Npg_n = randi([0 5],9,15) ; % ypothetoume oti to personal group einai mexri 5 atoma
+Npg_i = zeros(9,15);	% oloi se normal state sthn arxh
+Npg_e = zeros(9,15);
+
+% oi statheres apo ton pinaka
+Cca   = 0.273;
+Cspef = 0.245;
+Cspec = 1.02;
+Cspg  = 0.177;
+A     = 0.1;
+ 
+R = ones(9,15); % sthn arxh R=1
+
+for t=0:0.1:
+    
+    for i=1:9
+        for j=1:15
+            if R(i,j)>5.953 && room(i,j)==3;    
+                room(i,j) = 4;  % 4 gia evacuating state
+                fprintf('The person in  %d,%d place ', i,j); 
+                fprintf('starts to leave in %fs time \n', t);
+                
+            elseif R(i,j)>5.558  && room(i,j)==2;
+                room(i,j) = 3; % 3 gia investigating state
+                fprintf('The person in %d %d place ' , i,j); 
+                fprintf('knows something is wrong in %fs time \n', t); 
+            end
+        end
+    end                
+     
+    rows = sum(room==2, 2); % ypologizoume posoi einai se normal state kathontai se kathe seira
+    Npef_1 = [0; cumsum(rows)]; % diadikasia gia ypologismo Npef_n
+	Npef_1(end,:)=[];
+	Npef_2 = Npef_1(:,ones(1,15));
+    Npef_3(2:9,2:14) = Npef_2(2:9,2:14) - 3; 
+    Npef_3(2:9,1) = Npef_2(2:9,1) - 2; 
+    Npef_3(2:9,15) = Npef_2(2:9,15) - 2;
+    if t==0; Npef = Npef_3; end;    % ypologizoume posoi einai synolika oratoi (otan t=0)
+    Npef_n = Npef_3;    %   Npef_n
+    
+    rows = sum(room==4, 2); % ypologizoume posoi einai se evacuating state kathontai se kathe seira
+    Npef_1 = [0; cumsum(rows)]; % diadikasia gia ypologismo  Npef_e
+	Npef_1(end,:)=[];
+	Npef_2 = Npef_1(:,ones(1,15));
+    Npef_3(2:9,2:14) = Npef_2(2:9,2:14) - 3; 
+    Npef_3(2:9,1) = Npef_2(2:9,1) - 2; 
+    Npef_3(2:9,15) = Npef_2(2:9,15) - 2;
+    Npef_e = Npef_3; % Npef_e
+    Npef_i = Npef - Npef_n - Npef_e;    % Npef_i
+     
+    B = room==2;    % kratame se ena pinaka mono osous einai se normal state
+    B = flipud(B);  % diadikasia gia ypologismo Npec_n
+    M = conv2(double(B), K, 'same') - B;
+    if t==0; Npec = flipud(M); end; %ypologizoume posoi einai synolika konta oratoi (otan t=0)
+    Npec_n = flipud(M); % Npec_n
+     
+    B = room==4;    %  kratame se ena pinaka mono osous einai se evacuating state
+    B = flipud(B);  % diadikasia gia ypologismo Npec_e
+    M = conv2(double(B), K, 'same') - B;
+    Npec_e = flipud(M); % Npec_e
+    Npec_i = Npec - Npec_n - Npec_e;    % Npec_i
+    
+    % ypologismos tou R
+    err=offset();
+    R1 = exp(Cca*t);  
+    R2 = Cspef.*((Npef_e+Npef_i)./(Npef_n+Npef_e+Npef_i)).^A;
+    R2(isnan(R2))=0;
+    R3 = Cspec.*((Npec_e+Npec_i)./(Npec_n+Npec_e+Npec_i)).^A;
+    R4 = Cspg.*((Npg_i+Npg_e)./(Npg_n+Npg_e+Npg_i)).^A;
+    R4(isnan(R4))=0;
+    R = R1 + R2 + R3 + R4+err
+    printroom(room);
+end
